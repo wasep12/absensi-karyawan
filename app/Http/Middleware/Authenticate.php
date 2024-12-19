@@ -12,10 +12,20 @@ class Authenticate extends Middleware
      * @param  \Illuminate\Http\Request  $request
      * @return string|null
      */
+    // protected function redirectTo($request)
+    // {
+    //     if (! $request->expectsJson()) {
+    //         return route('login');
+    //     }
+    // }
+    // app/Http/Middleware/Authenticate.php
+
     protected function redirectTo($request)
     {
-        if (! $request->expectsJson()) {
-            return route('login');
+        // Cek jika request tidak menginginkan JSON
+        if (!$request->expectsJson()) {
+            return url('/'); // Mengarahkan ke halaman beranda atau halaman lain
         }
     }
+
 }

@@ -1,6 +1,9 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use Illuminate\Support\Facades\DB;
+use App\Models\Absensi;
 use App\Models\RfidTemp;
 use App\Models\Karyawan;
 use Illuminate\Http\Request;
@@ -14,7 +17,7 @@ class KaryawanController extends Controller
      */
     public function index()
     {
-     
+
         $data = Karyawan::All();
         return view('karyawan.index', compact('data'));
     }
@@ -26,7 +29,7 @@ class KaryawanController extends Controller
      */
     public function create()
     {
-        $delete = \DB::table('temp_rfid')->delete();
+        $delete = DB::table('temp_rfid')->delete();
         return view('karyawan.create');
     }
 
@@ -38,17 +41,30 @@ class KaryawanController extends Controller
      */
     public function store(Request $request)
     {
-        $karyawan = Karyawan::create([
-            'uid' => $request->input('kartu'),
-            'nama' => $request->input('nama'),
-            'email' => $request->input('email'),
-            'jabatan' => $request->input('jabatan'),
-
+        // Validasi input
+        $validated = $request->validate([
+            'kartu' => 'required|string|max:255',
+            'nama' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'jabatan' => 'required|string|max:255',
         ]);
-         $delete = \DB::table('temp_rfid')->delete();
 
-        return redirect('/karyawan')->with('success', 'Data Berhasil Ditambahkan !!');  
+        // Simpan data karyawan
+        $karyawan = Karyawan::create([
+            'uid' => $validated['kartu'],
+            'nama' => $validated['nama'],
+            'email' => $validated['email'],
+            'jabatan' => $validated['jabatan'],
+        ]);
+
+        // Hapus data dari tabel temp_rfid setelah penyimpanan
+        DB::table('temp_rfid')->delete();
+
+        // return redirect()->back()->with('success', 'Data Karyawan Berhasil Ditambahkan !!');
+        // Redirect dengan pesan sukses
+        return redirect('/karyawan')->with('success', 'Data Berhasil Ditambahkan !!');
     }
+
 
     /**
      * Display the specified resource.
@@ -84,12 +100,12 @@ class KaryawanController extends Controller
     {
         $id = $request->input('id');
         $data = Karyawan::where('id', $id)->update([
-          'nama' => $request->input('nama'),
-          'email' => $request->input('email'),
-          'jabatan' => $request->input('jabatan'),
-      ]);
+            'nama' => $request->input('nama'),
+            'email' => $request->input('email'),
+            'jabatan' => $request->input('jabatan'),
+        ]);
 
-        return redirect('/karyawan')->with('success', 'Data Berhasil Diedit !!');  
+        return redirect('/karyawan')->with('success', 'Data Berhasil Diedit !!');
     }
 
     /**
@@ -100,7 +116,16 @@ class KaryawanController extends Controller
      */
     public function destroy($id)
     {
-     $data = Karyawan::where('id', $id)->delete();
-      return redirect('/karyawan')->with('success', 'Data Berhasil Dihapus !!');  
+        // Temukan data karyawan berdasarkan ID
+        $karyawan = Karyawan::findOrFail($id);
+
+        // Hapus semua absensi yang terkait dengan karyawan
+        Absensi::where('uid', $karyawan->uid)->delete();
+
+        // Hapus data karyawan
+        $karyawan->delete();
+
+        // Redirect dengan pesan sukses
+        return redirect('/karyawan')->with('success', 'Data Karyawan dan Absensi Terkait Berhasil Dihapus !!');
     }
 }
